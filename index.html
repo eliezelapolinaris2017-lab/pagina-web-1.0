@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Catálogo Editable — Admin</title>
+<meta name="theme-color" content="#0f0f12">
+
+<style>
+:root{
+  --bg:#0f0f12; --fg:#fff; --muted:#a7a7b1; --primary:#6ee7b7; --accent:#93c5fd;
+  --danger:#ef4444; --warn:#f59e0b; --card:#171821; --card2:#1e202b;
+  --outline:#2a2d40; --shadow:0 10px 30px rgba(0,0,0,.35); --radius:16px;
+  --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, "Helvetica Neue", Arial;
+}
+*{box-sizing:border-box}
+body{margin:0; color:var(--fg); background:#0f0f12; font-family:var(--font)}
+a{color:inherit; text-decoration:none}
+.container{max-width:1140px; margin:0 auto; padding:16px}
+.row{display:grid; gap:12px}
+.row.cols-2{grid-template-columns:1fr 1fr}
+.row.cols-3{grid-template-columns:repeat(3,1fr)}
+.row.cols-4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:980px){.row.cols-2,.row.cols-3,.row.cols-4{grid-template-columns:1fr}}
+.card{background:linear-gradient(180deg,var(--card),var(--card2)); border:1px solid var(--outline); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px}
+.input, select, textarea{width:100%; padding:.75rem .85rem; border:1px solid var(--outline); border-radius:12px; background:#11131a; color:#fff; outline:none}
+.input:focus, select:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(147,197,253,.25)}
+label{display:block; font-size:.88rem; color:var(--muted); margin:0 0 .35rem}
+button{cursor:pointer; border:0; border-radius:12px; padding:.7rem .95rem; background:#24263a; color:#fff; box-shadow:var(--shadow)}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--accent))}
+.btn-ghost{background:transparent; border:1px solid var(--outline)}
+.btn-danger{background:linear-gradient(135deg,var(--danger),#b91c1c)}
+.btn-warn{background:linear-gradient(135deg,var(--warn),#f59e0b)}
+.toolbar{display:flex; gap:.5rem; align-items:center; flex-wrap:wrap}
+.spacer{flex:1}
+.badge{display:inline-flex; gap:.35rem; padding:.25rem .55rem; border:1px solid var(--outline); background:#101323; border-radius:999px; font-size:.78rem; color:#c7d2fe}
+.header{
+  position:sticky; top:0; z-index:10; background:rgba(15,15,18,.9); backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--outline)
+}
+.header .inner{display:flex; align-items:center; gap:.8rem; padding:.8rem 16px; max-width:1140px; margin:0 auto}
+.logo{width:40px; height:40px; border-radius:10px; object-fit:cover; border:1px solid var(--outline); background:#0e1020}
+.brand{font-weight:800; letter-spacing:.2px}
+.nav{margin-left:auto; display:flex; gap:.4rem; align-items:center}
+.tabbar{display:flex; gap:.4rem; flex-wrap:wrap}
+.tabbar button{padding:.5rem .8rem}
+.screen{display:none}
+.screen.active{display:block; animation:fade .15s ease}
+@keyframes fade{from{opacity:.5; transform:translateY(2px)} to{opacity:1; transform:none}}
+.grid-cards{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+@media (max-width:980px){.grid-cards{grid-template-columns:1fr}}
+.item{display:flex; flex-direction:column; gap:.6rem}
+.item img{width:100%; height:220px; object-fit:cover; border-radius:12px; border:1px solid var(--outline); background:#0b0e1a}
+.price{font-weight:800}
+.hr{height:1px; background:linear-gradient(90deg,transparent,#2b3150,transparent); margin:12px 0}
+.footer{border-top:1px solid var(--outline); color:#a9b2dc; text-align:center; padding:16px}
+.small{font-size:.85rem; color:#a9b2dc}
+.center{text-align:center}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="inner">
+    <img id="brandLogo" class="logo" alt="logo">
+    <div>
+      <div class="brand" id="brandName">Mi Catálogo</div>
+      <div class="small" id="brandSub">Galería editable</div>
+    </div>
+    <div class="nav">
+      <div class="tabbar">
+        <button class="btn-ghost" data-goto="screen-home">Inicio</button>
+        <button class="btn-ghost" data-goto="screen-tab2">Pestaña 2</button>
+        <button class="btn-ghost" data-goto="screen-tab3">Pestaña 3</button>
+        <button class="btn-ghost" data-goto="screen-config">Configuración</button>
+      </div>
+      <button id="btnLogin" class="btn-primary">Admin</button>
+      <button id="btnLogout" class="btn-danger hidden">Salir</button>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <!-- LOGIN -->
+  <section id="screen-login" class="screen">
+    <div class="row cols-2">
+      <div class="card">
+        <h2>Iniciar sesión</h2>
+        <div class="hr"></div>
+        <label>Usuario</label><input id="loginUser" class="input" placeholder="admin">
+        <label>Contraseña</label><input id="loginPass" type="password" class="input" placeholder="••••••••">
+        <div class="toolbar" style="margin-top:.6rem">
+          <button id="doLogin" class="btn-primary">Entrar</button>
+          <span class="spacer"></span>
+          <span class="small">Admin por defecto: <b>admin / admin123</b> (modificable)</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>¿Qué obtienes al iniciar sesión?</h3>
+        <ul class="small">
+          <li>Agregar/editar/eliminar ítems (foto, texto, precio, YouTube, WhatsApp).</li>
+          <li>Configurar logo, colores, links sociales, ID de Analytics.</li>
+          <li>Agregar código HTML personalizado.</li>
+          <li>Crear y gestionar las otras pestañas.</li>
+          <li>Backup/Restaurar la base de datos (JSON).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOME (galería principal) -->
+  <section id="screen-home" class="screen active">
+    <div class="toolbar">
+      <h2 style="margin:0">Catálogo — Página principal</h2>
+      <span class="spacer"></span>
+      <button id="btnAddItemHome" class="btn-primary hidden">Añadir ítem</button>
+      <button id="btnExportPDFHome" class="btn-ghost">Exportar PDF</button>
+      <button id="btnShareWAHome" class="btn-ghost">Compartir por WhatsApp</button>
+    </div>
+    <div id="customHtmlHome"></div>
+    <div class="hr"></div>
+    <div id="gridHome" class="grid-cards"></div>
+  </section>
+
+  <!-- TAB 2 -->
+  <section id="screen-tab2" class="screen">
+    <div class="toolbar">
+      <h2 style="margin:0">Pestaña 2</h2>
+      <span class="spacer"></span>
+      <button id="btnAddItemTab2" class="btn-primary hidden">Añadir ítem</button>
+      <button id="btnExportPDFTab2" class="btn-ghost">Exportar PDF</button>
+      <button id="btnShareWATab2" class="btn-ghost">Compartir por WhatsApp</button>
+    </div>
+    <div id="customHtmlTab2"></div>
+    <div class="hr"></div>
+    <div id="gridTab2" class="grid-cards"></div>
+  </section>
+
+  <!-- TAB 3 -->
+  <section id="screen-tab3" class="screen">
+    <div class="toolbar">
+      <h2 style="margin:0">Pestaña 3</h2>
+      <span class="spacer"></span>
+      <button id="btnAddItemTab3" class="btn-primary hidden">Añadir ítem</button>
+      <button id="btnExportPDFTab3" class="btn-ghost">Exportar PDF</button>
+      <button id="btnShareWATab3" class="btn-ghost">Compartir por WhatsApp</button>
+    </div>
+    <div id="customHtmlTab3"></div>
+    <div class="hr"></div>
+    <div id="gridTab3" class="grid-cards"></div>
+  </section>
+    <!-- CONFIGURACIÓN -->
+  <section id="screen-config" class="screen">
+    <div class="row cols-2">
+      <!-- Branding -->
+      <div class="card">
+        <h3>Branding</h3>
+        <div class="hr"></div>
+        <label>Nombre</label><input id="cfg_name" class="input" placeholder="Mi Catálogo">
+        <label>Subtítulo</label><input id="cfg_sub" class="input" placeholder="Galería editable">
+        <label>Logo</label><input id="cfg_logo" type="file" accept="image/*" class="input">
+        <div class="toolbar" style="margin-top:.6rem">
+          <button id="btnApplyBrand" class="btn-primary">Aplicar cambios</button>
+          <span class="spacer"></span>
+          <img id="cfg_logo_prev" class="logo" alt="preview">
+        </div>
+      </div>
+
+      <!-- Colores -->
+      <div class="card">
+        <h3>Colores</h3>
+        <div class="hr"></div>
+        <label>Primario</label><input id="cfg_primary" type="color" class="input" value="#6ee7b7">
+        <label>Acento</label><input id="cfg_accent" type="color" class="input" value="#93c5fd">
+        <div class="toolbar" style="margin-top:.6rem">
+          <button id="btnApplyColors" class="btn-primary">Aplicar cambios</button>
+        </div>
+      </div>
+
+      <!-- Sociales / Contacto -->
+      <div class="card">
+        <h3>Redes & Contacto</h3>
+        <div class="hr"></div>
+        <label>Facebook (URL)</label><input id="cfg_fb" class="input" placeholder="https://facebook.com/...">
+        <label>Instagram (URL)</label><input id="cfg_ig" class="input" placeholder="https://instagram.com/...">
+        <label>WhatsApp (número global)</label><input id="cfg_wa" class="input" placeholder="+1 787 000 0000">
+        <div class="toolbar" style="margin-top:.6rem">
+          <button id="btnApplySocial" class="btn-primary">Aplicar cambios</button>
+          <a id="lnkFB" class="badge" target="_blank">FB</a>
+          <a id="lnkIG" class="badge" target="_blank">IG</a>
+          <a id="lnkWA" class="badge" target="_blank">WA</a>
+        </div>
+      </div>
+
+      <!-- Analytics -->
+      <div class="card">
+        <h3>Google Analytics</h3>
+        <div class="hr"></div>
+        <label>Measurement ID (G-XXXXXXXXXX)</label><input id="cfg_ga" class="input" placeholder="G-XXXXXXXXXX">
+        <div class="toolbar" style="margin-top:.6rem">
+          <button id="btnApplyGA" class="btn-primary">Aplicar cambios</button>
+          <span class="small">Se inyecta el script dinámicamente.</span>
+        </div>
+      </div>
+
+      <!-- HTML Libre por pestaña -->
+      <div class="card">
+        <h3>HTML personalizado</h3>
+        <div class="hr"></div>
+        <label>HTML para Inicio</label><textarea id="cfg_html_home" rows="4" class="input" placeholder="<h3>Promoción</h3>"></textarea>
+        <label>HTML para Pestaña 2</label><textarea id="cfg_html_tab2" rows="4" class="input"></textarea>
+        <label>HTML para Pestaña 3</label><textarea id="cfg_html_tab3" rows="4" class="input"></textarea>
+        <div class="toolbar" style="margin-top:.6rem">
+          <button id="btnApplyHTML" class="btn-primary">Aplicar cambios</button>
+        </div>
+      </div>
+
+      <!-- Backup / Restore -->
+      <div class="card">
+        <h3>Backup / Restaurar</h3>
+        <div class="hr"></div>
+        <div class="toolbar">
+          <button id="btnBackup" class="btn-ghost">Descargar backup (JSON)</button>
+          <input id="inpRestore" type="file" accept="application/json" class="input">
+          <button id="btnRestore" class="btn-warn">Restaurar archivo</button>
+          <span class="spacer"></span>
+          <button id="btnReset" class="btn-danger">Reiniciar (demo)</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Gestión de pestañas</h3>
+      <div class="hr"></div>
+      <div class="row cols-3">
+        <div>
+          <label>Título Inicio</label><input id="tab_t_home" class="input" placeholder="Inicio">
+        </div>
+        <div>
+          <label>Título Pestaña 2</label><input id="tab_t_2" class="input" placeholder="Pestaña 2">
+        </div>
+        <div>
+          <label>Título Pestaña 3</label><input id="tab_t_3" class="input" placeholder="Pestaña 3">
+        </div>
+      </div>
+      <div class="toolbar" style="margin-top:.6rem">
+        <button id="btnApplyTabs" class="btn-primary">Aplicar cambios</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Credenciales admin</h3>
+      <div class="hr"></div>
+      <label>Usuario</label><input id="cred_user" class="input" placeholder="admin">
+      <label>Contraseña</label><input id="cred_pass" type="password" class="input" placeholder="admin123">
+      <div class="toolbar" style="margin-top:.6rem">
+        <button id="btnApplyCreds" class="btn-primary">Aplicar cambios</button>
+        <span class="small">Guárdalos; se aplican de inmediato.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODAL/FORM ÍTEM -->
+  <section id="screen-item" class="screen">
+    <div class="card">
+      <h3>Ítem</h3>
+      <div class="hr"></div>
+      <div class="row cols-3">
+        <div>
+          <label>Imagen (subir)</label><input id="it_img" type="file" accept="image/*" class="input">
+        </div>
+        <div>
+          <label>Título</label><input id="it_title" class="input" placeholder="Nombre del producto/servicio">
+        </div>
+        <div>
+          <label>Precio</label><input id="it_price" class="input" placeholder="29.99">
+        </div>
+      </div>
+      <label>Descripción</label><textarea id="it_desc" rows="3" class="input" placeholder="Detalles..."></textarea>
+      <div class="row cols-3">
+        <div>
+          <label>Video de YouTube (URL)</label><input id="it_yt" class="input" placeholder="https://youtu.be/...">
+        </div>
+        <div>
+          <label>WhatsApp (tel opcional)</label><input id="it_wa" class="input" placeholder="+1 787 ...">
+        </div>
+        <div>
+          <label>Ubicación (pestaña)</label>
+          <select id="it_tab" class="input">
+            <option value="home">Inicio</option>
+            <option value="tab2">Pestaña 2</option>
+            <option value="tab3">Pestaña 3</option>
+          </select>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-top:.6rem">
+        <button id="btnSaveItem" class="btn-primary">Guardar</button>
+        <button id="btnCancelItem" class="btn-ghost">Cancelar</button>
+        <span class="spacer"></span>
+        <button id="btnDeleteItem" class="btn-danger hidden">Eliminar</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="hr"></div>
+</main>
+
+<footer class="footer">
+  <div>© <span id="year"></span> <span id="footerName">Mi Catálogo</span> — Todos los derechos reservados.</div>
+</footer>
+
+<script>
+/* ================== STORAGE KEYS ================== */
+const K={
+  CFG:'ce_config', TABS:'ce_tabs', ITEMS:'ce_items', CREDS:'ce_creds', SESSION:'ce_session'
+};
+
+/* ================== UTILS ================== */
+const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
+const byId=id=>document.getElementById(id);
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const load=(k,d=null)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
+const fmtMoney=n=>isNaN(+n)?'':(+n).toLocaleString('es-PR',{style:'currency',currency:'USD'});
+const fileToDataURL=f=>new Promise(res=>{const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(f);});
+const waClean=s=>(s||'').replace(/\D/g,'');
+
+/* ================== DEFAULTS ================== */
+function ensureDefaults(){
+  if(!load(K.CFG)) save(K.CFG,{
+    name:'Mi Catálogo', sub:'Galería editable',
+    primary:'#6ee7b7', accent:'#93c5fd',
+    logo:null,
+    fb:'', ig:'', wa:'',
+    ga:'', htmlHome:'', html2:'', html3:''
+  });
+  if(!load(K.TABS)) save(K.TABS,{home:'Inicio', tab2:'Pestaña 2', tab3:'Pestaña 3'});
+  if(!load(K.ITEMS)) save(K.ITEMS,[]); // {id,tab,img,title,price,desc,yt,wa}
+  if(!load(K.CREDS)) save(K.CREDS,{user:'admin',pass:'admin123'});
+}
+
+/* ================== NAV/SCREENS ================== */
+function show(id){
+  $$('.screen').forEach(s=>s.classList.remove('active'));
+  byId(id).classList.add('active');
+}
+function bindNav(){
+  $$('[data-goto]').forEach(b=> b.onclick=()=>show(b.dataset.goto));
+  byId('btnLogin').onclick=()=>show('screen-login');
+  byId('btnLogout').onclick=()=>{ localStorage.removeItem(K.SESSION); setAuthUI(false); show('screen-home'); };
+}
+
+/* ================== AUTH ================== */
+function setAuthUI(auth){
+  byId('btnLogin').classList.toggle('hidden',auth);
+  byId('btnLogout').classList.toggle('hidden',!auth);
+  // botones de añadir sólo visibles si auth
+  ['btnAddItemHome','btnAddItemTab2','btnAddItemTab3'].forEach(id=>{
+    const el=byId(id); if(el) el.classList.toggle('hidden',!auth);
+  });
+}
+function login(user,pass){
+  const c=load(K.CREDS,{});
+  const ok = (user===c.user && pass===c.pass);
+  if(ok){ save(K.SESSION,{user,ts:Date.now()}); setAuthUI(true); show('screen-home'); }
+  return ok;
+}
+
+/* ================== BRAND/APPLY ================== */
+function applyBrand(){
+  const c=load(K.CFG,{});
+  byId('brandName').textContent=c.name||'Mi Catálogo';
+  byId('brandSub').textContent=c.sub||'';
+  byId('footerName').textContent=c.name||'Mi Catálogo';
+  if(c.logo){ byId('brandLogo').src=c.logo; byId('cfg_logo_prev').src=c.logo; }
+  document.documentElement.style.setProperty('--primary', c.primary||'#6ee7b7');
+  document.documentElement.style.setProperty('--accent',  c.accent ||'#93c5fd');
+}
+function syncConfigInputs(){
+  const c=load(K.CFG,{});
+  byId('cfg_name').value=c.name||'';
+  byId('cfg_sub').value=c.sub||'';
+  byId('cfg_primary').value=c.primary||'#6ee7b7';
+  byId('cfg_accent').value=c.accent||'#93c5fd';
+  byId('cfg_fb').value=c.fb||'';
+  byId('cfg_ig').value=c.ig||'';
+  byId('cfg_wa').value=c.wa||'';
+  byId('cfg_ga').value=c.ga||'';
+  byId('cfg_html_home').value=c.htmlHome||'';
+  byId('cfg_html_tab2').value=c.html2||'';
+  byId('cfg_html_tab3').value=c.html3||'';
+  // links
+  const fb=byId('lnkFB'), ig=byId('lnkIG'), wa=byId('lnkWA');
+  if(fb) fb.href=c.fb||'#'; if(ig) ig.href=c.ig||'#';
+  if(wa) wa.href = c.wa? `https://wa.me/${waClean(c.wa)}` : '#';
+}
+function applyTabsUI(){
+  const t=load(K.TABS,{});
+  $$('[data-goto="screen-home"]').forEach(b=>b.textContent=t.home||'Inicio');
+  $$('[data-goto="screen-tab2"]').forEach(b=>b.textContent=t.tab2||'Pestaña 2');
+  $$('[data-goto="screen-tab3"]').forEach(b=>b.textContent=t.tab3||'Pestaña 3');
+  byId('tab_t_home').value=t.home||'';
+  byId('tab_t_2').value=t.tab2||'';
+  byId('tab_t_3').value=t.tab3||'';
+}
+function injectGA(){
+  const c=load(K.CFG,{});
+  // limpia script previo
+  const old=$('#ga-script'); if(old) old.remove();
+  if(!c.ga) return;
+  const s=document.createElement('script');
+  s.id='ga-script';
+  s.innerHTML = `
+    window.dataLayer=window.dataLayer||[];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date()); gtag('config', '${c.ga}');
+  `;
+  const src=document.createElement('script');
+  src.async=true; src.src=`https://www.googletagmanager.com/gtag/js?id=${c.ga}`;
+  document.head.appendChild(src);
+  document.head.appendChild(s);
+}
+
+/* ================== ITEMS ================== */
+let editingId=null;
+function openItem(tab='home', id=null){
+  editingId=id;
+  // reset
+  ['it_img','it_title','it_price','it_desc','it_yt','it_wa'].forEach(i=>byId(i).value='');
+  byId('it_tab').value=tab;
+  byId('btnDeleteItem').classList.toggle('hidden',!id);
+  if(id){
+    const it=load(K.ITEMS,[]).find(x=>x.id===id); if(!it) return;
+    byId('it_title').value=it.title||'';
+    byId('it_price').value=it.price||'';
+    byId('it_desc').value=it.desc||'';
+    byId('it_yt').value=it.yt||'';
+    byId('it_wa').value=it.wa||'';
+    byId('it_tab').value=it.tab||'home';
+  }
+  show('screen-item');
+}
+async function saveItem(){
+  const items=load(K.ITEMS,[]);
+  let img=null;
+  const f=byId('it_img').files?.[0];
+  if(f) img=await fileToDataURL(f);
+  const payload={
+    id: editingId || (Date.now().toString(36)+Math.random().toString(36).slice(2)),
+    tab: byId('it_tab').value || 'home',
+    title: byId('it_title').value.trim(),
+    price: byId('it_price').value.trim(),
+    desc: byId('it_desc').value.trim(),
+    yt: byId('it_yt').value.trim(),
+    wa: byId('it_wa').value.trim()
+  };
+  if(editingId){
+    save(K.ITEMS, items.map(x=> x.id===editingId ? {...x, ...payload, img: img||x.img} : x));
+  }else{
+    payload.img = img || '';
+    items.push(payload); save(K.ITEMS, items);
+  }
+  editingId=null;
+  renderAll();
+  show('screen-home');
+}
+function delItem(){
+  if(!editingId) return;
+  save(K.ITEMS, load(K.ITEMS,[]).filter(x=>x.id!==editingId));
+  editingId=null; renderAll(); show('screen-home');
+}
+
+/* ================== RENDER ================== */
+function itemCard(it){
+  const c=load(K.CFG,{});
+  const waNum = it.wa ? waClean(it.wa) : waClean(c.wa);
+  const waLink = waNum ? `https://wa.me/${waNum}?text=${encodeURIComponent('Hola, me interesa: '+(it.title||''))}` : '#';
+  const yt = it.yt ? `<a class="badge" target="_blank" href="${it.yt}">YouTube</a>` : '';
+  return `
+    <div class="card item">
+      <img src="${it.img||''}" alt="${it.title||''}">
+      <div><b>${it.title||''}</b></div>
+      <div class="small">${it.desc||''}</div>
+      <div class="price">${fmtMoney(it.price||0)}</div>
+      <div class="toolbar">
+        <a class="btn-ghost" target="_blank" href="${waLink}">WhatsApp</a>
+        ${yt}
+        <span class="spacer"></span>
+        ${isAuth() ? `<button class="btn-ghost" onclick="openItem('${it.tab}','${it.id}')">Editar</button>`:''}
+      </div>
+    </div>
+  `;
+}
+function renderTab(tab, gridId, htmlId){
+  const items=load(K.ITEMS,[]).filter(x=>x.tab===tab);
+  byId(gridId).innerHTML = items.map(itemCard).join('') || `<div class="small">Sin elementos aún.</div>`;
+  // HTML personalizado
+  const cfg=load(K.CFG,{});
+  const html = tab==='home'? cfg.htmlHome : tab==='tab2' ? cfg.html2 : cfg.html3;
+  byId(htmlId).innerHTML = html||'';
+}
+function renderAll(){
+  applyBrand(); applyTabsUI();
+  renderTab('home','gridHome','customHtmlHome');
+  renderTab('tab2','gridTab2','customHtmlTab2');
+  renderTab('tab3','gridTab3','customHtmlTab3');
+}
+function isAuth(){ return !!load(K.SESSION,null); }
+
+/* ================== EXPORT/WA ================== */
+function exportPDF(tabTitle, gridId){
+  const win=window.open('','_blank');
+  const itemsHTML = byId(gridId).innerHTML;
+  const c=load(K.CFG,{});
+  win.document.write(`
+    <html><head><meta charset="utf-8"><title>${tabTitle}</title>
+    <style>
+      body{font-family:${getComputedStyle(document.documentElement).getPropertyValue('--font')}; padding:20px}
+      .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+      @media print { .btn{display:none} }
+      .card{border:1px solid #ddd; border-radius:10px; padding:8px}
+      img{width:100%; height:180px; object-fit:cover; border-radius:8px; border:1px solid #ddd}
+    </style></head><body>
+      <h2>${c.name||'Catálogo'} — ${tabTitle}</h2>
+      <div class="grid">${itemsHTML}</div>
+      <script>window.onload=()=>window.print()</script>
+    </body></html>
+  `);
+  win.document.close();
+}
+function shareTabWA(tab){
+  const items=load(K.ITEMS,[]).filter(x=>x.tab===tab);
+  if(!items.length) return alert('No hay elementos para compartir.');
+  const lines = items.slice(0,30).map(i=>`• ${i.title||''} — ${fmtMoney(i.price||0)}`);
+  const msg = encodeURIComponent((load(K.CFG,{}).name||'Catálogo') + '\\n' + lines.join('\\n'));
+  const waNum = waClean(load(K.CFG,{}).wa||'');
+  const url = waNum ? `https://wa.me/${waNum}?text=${msg}` : `https://wa.me/?text=${msg}`;
+  window.open(url,'_blank');
+}
+/* ================== BIND EVENTS ================== */
+function bindUI(){
+  // Nav
+  bindNav();
+
+  // Login
+  byId('doLogin').onclick=()=>{
+    const u=byId('loginUser').value.trim(), p=byId('loginPass').value.trim();
+    if(!login(u,p)) return alert('Credenciales inválidas');
+  };
+
+  // Add item buttons
+  byId('btnAddItemHome').onclick=()=>openItem('home',null);
+  byId('btnAddItemTab2').onclick=()=>openItem('tab2',null);
+  byId('btnAddItemTab3').onclick=()=>openItem('tab3',null);
+  byId('btnSaveItem').onclick=saveItem;
+  byId('btnCancelItem').onclick=()=>{ editingId=null; show('screen-home'); };
+  byId('btnDeleteItem').onclick=delItem;
+
+  // Export PDF & WA per tab
+  byId('btnExportPDFHome').onclick=()=>exportPDF(load(K.TABS,{}).home||'Inicio','gridHome');
+  byId('btnExportPDFTab2').onclick=()=>exportPDF(load(K.TABS,{}).tab2||'Pestaña 2','gridTab2');
+  byId('btnExportPDFTab3').onclick=()=>exportPDF(load(K.TABS,{}).tab3||'Pestaña 3','gridTab3');
+
+  byId('btnShareWAHome').onclick=()=>shareTabWA('home');
+  byId('btnShareWATab2').onclick=()=>shareTabWA('tab2');
+  byId('btnShareWATab3').onclick=()=>shareTabWA('tab3');
+
+  // Config: Branding
+  byId('btnApplyBrand').onclick=async ()=>{
+    const c=load(K.CFG,{});
+    const name=byId('cfg_name').value.trim();
+    const sub=byId('cfg_sub').value.trim();
+    let logo=c.logo;
+    const f=byId('cfg_logo').files?.[0];
+    if(f) logo=await fileToDataURL(f);
+    save(K.CFG,{...c,name,sub,logo});
+    applyBrand(); renderAll();
+    alert('Branding aplicado');
+  };
+
+  // Config: Colores
+  byId('btnApplyColors').onclick=()=>{
+    const c=load(K.CFG,{});
+    const primary=byId('cfg_primary').value; const accent=byId('cfg_accent').value;
+    save(K.CFG,{...c,primary,accent});
+    applyBrand(); renderAll();
+    alert('Colores aplicados');
+  };
+
+  // Config: Sociales
+  byId('btnApplySocial').onclick=()=>{
+    const c=load(K.CFG,{});
+    const fb=byId('cfg_fb').value.trim();
+    const ig=byId('cfg_ig').value.trim();
+    const wa=byId('cfg_wa').value.trim();
+    save(K.CFG,{...c,fb,ig,wa});
+    syncConfigInputs();
+    alert('Redes/Contacto aplicados');
+  };
+
+  // Config: GA
+  byId('btnApplyGA').onclick=()=>{
+    const c=load(K.CFG,{});
+    const ga=byId('cfg_ga').value.trim();
+    save(K.CFG,{...c,ga});
+    injectGA();
+    alert('Google Analytics aplicado');
+  };
+
+  // Config: HTML
+  byId('btnApplyHTML').onclick=()=>{
+    const c=load(K.CFG,{});
+    const htmlHome=byId('cfg_html_home').value;
+    const html2=byId('cfg_html_tab2').value;
+    const html3=byId('cfg_html_tab3').value;
+    save(K.CFG,{...c,htmlHome,html2,html3});
+    renderAll();
+    alert('HTML personalizado aplicado');
+  };
+
+  // Tabs
+  byId('btnApplyTabs').onclick=()=>{
+    const t={home:byId('tab_t_home').value||'Inicio', tab2:byId('tab_t_2').value||'Pestaña 2', tab3:byId('tab_t_3').value||'Pestaña 3'};
+    save(K.TABS,t); applyTabsUI(); renderAll(); alert('Pestañas actualizadas');
+  };
+
+  // Credenciales
+  byId('btnApplyCreds').onclick=()=>{
+    save(K.CREDS,{user:byId('cred_user').value.trim()||'admin', pass:byId('cred_pass').value||'admin123'});
+    alert('Credenciales actualizadas');
+  };
+
+  // Backup
+  byId('btnBackup').onclick=()=>{
+    const dump = {
+      cfg:load(K.CFG,{}), tabs:load(K.TABS,{}), items:load(K.ITEMS,[]), creds:load(K.CREDS,{}),
+    };
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([JSON.stringify(dump,null,2)],{type:'application/json'}));
+    a.download=`backup_catalogo_${Date.now()}.json`; a.click(); URL.revokeObjectURL(a.href);
+  };
+  byId('btnRestore').onclick=()=>{
+    const f=byId('inpRestore').files?.[0]; if(!f) return alert('Selecciona un archivo JSON');
+    const r=new FileReader(); r.onload=()=>{
+      try{
+        const j=JSON.parse(r.result);
+        if(j.cfg) save(K.CFG,j.cfg);
+        if(j.tabs) save(K.TABS,j.tabs);
+        if(j.items) save(K.ITEMS,j.items);
+        if(j.creds) save(K.CREDS,j.creds);
+        applyBrand(); syncConfigInputs(); applyTabsUI(); renderAll(); injectGA();
+        alert('Restaurado correctamente');
+      }catch(e){ alert('Archivo inválido'); }
+    }; r.readAsText(f);
+  };
+
+  // Reset (demo)
+  byId('btnReset').onclick=()=>{
+    if(!confirm('Esto borrará los datos y volverá a demo. ¿Continuar?')) return;
+    localStorage.removeItem(K.CFG); localStorage.removeItem(K.TABS); localStorage.removeItem(K.ITEMS);
+    localStorage.removeItem(K.CREDS); localStorage.removeItem(K.SESSION);
+    ensureDefaults(); boot();
+  };
+}
+
+/* ================== BOOT ================== */
+function boot(){
+  ensureDefaults();
+  const ses=load(K.SESSION,null); setAuthUI(!!ses);
+  applyBrand(); syncConfigInputs(); applyTabsUI(); renderAll(); injectGA();
+  bindUI();
+  byId('year').textContent = new Date().getFullYear();
+}
+window.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>
