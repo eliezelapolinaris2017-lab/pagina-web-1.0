@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NeoCatálogo — Galería editable</title>
+<meta name="theme-color" content="#0b0f14">
+<style>
+:root{
+  --bg:#0b0f14; --fg:#eaf2ff; --muted:#9db0c9; --primary:#5df0c1; --accent:#7aa5ff;
+  --danger:#ff6b6b; --outline:rgba(255,255,255,.08); --glass:rgba(255,255,255,.06);
+  --radius:18px; --shadow:0 20px 60px rgba(0,0,0,.45);
+  --font: ui-sans-serif, system-ui, -apple-system, "SF Pro", Inter, Segoe UI, Roboto, Arial;
+}
+*{box-sizing:border-box}
+body{margin:0; font-family:var(--font); color:var(--fg); background:var(--bg);}
+a{color:inherit; text-decoration:none}
+img{max-width:100%; display:block}
+button{cursor:pointer; border:0; border-radius:12px; padding:.7rem 1rem; color:#fff;
+  background:linear-gradient(135deg,var(--accent),var(--primary));}
+.btn-ghost{background:transparent; border:1px solid var(--outline); color:var(--fg)}
+.btn-danger{background:linear-gradient(135deg,#ff6b6b,#b92f2f)}
+.input,select,textarea{width:100%; padding:.7rem .9rem; border:1px solid var(--outline);
+  border-radius:12px; background:#111a22; color:#fff}
+label{display:block; font-size:.85rem; color:var(--muted); margin:.2rem 0 .3rem}
+.container{max-width:1180px; margin:0 auto; padding:24px 16px 80px}
+.header{position:sticky; top:0; background:#0b0f14; border-bottom:1px solid var(--outline); z-index:10}
+.header-inner{display:flex; gap:12px; align-items:center; padding:10px 16px;}
+.brand{display:flex; align-items:center; gap:.6rem}
+.brand .logo{width:36px; height:36px; border-radius:8px; border:1px solid var(--outline); object-fit:cover}
+.nav{margin-left:auto; display:flex; gap:.4rem; flex-wrap:wrap}
+.tab{padding:.4rem .8rem; border-radius:999px; border:1px solid var(--outline)}
+.tab.active{background:var(--glass); border-color:transparent}
+.screen{display:none}
+.screen.active{display:block}
+.card{background:var(--glass); border:1px solid var(--outline); border-radius:var(--radius); padding:1rem; margin-bottom:1rem}
+.grid{display:grid; gap:1rem; grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.item{display:flex; flex-direction:column; gap:.5rem}
+.item img{width:100%; height:180px; object-fit:cover; border-radius:12px; border:1px solid var(--outline)}
+.price{padding:.2rem .55rem; border-radius:10px; border:1px solid var(--outline); background:rgba(122,165,255,.1); font-size:.85rem}
+.footer{border-top:1px solid var(--outline); text-align:center; padding:16px; color:#aaa}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <img id="brandLogo" class="logo" alt="logo">
+      <div>
+        <div id="brandName">NeoCatálogo</div>
+        <div id="brandSub" style="font-size:.85rem;color:#aaa">Galería editable</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="tab active" data-goto="screen-home">Inicio</a>
+      <a class="tab" data-goto="screen-tab2">Pestaña 2</a>
+      <a class="tab" data-goto="screen-tab3">Pestaña 3</a>
+      <a class="tab" data-goto="screen-config">Configuración</a>
+    </nav>
+    <div class="toolbar">
+      <button id="btnLogin" class="btn-ghost">Login</button>
+      <button id="btnLogout" class="btn-danger hidden">Salir</button>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <!-- HOME -->
+  <section id="screen-home" class="screen active">
+    <div class="card">
+      <div class="toolbar">
+        <h2>Página principal</h2>
+        <button id="btnAddItemHome" class="btn-ghost hidden">Añadir ítem</button>
+        <button id="btnExportPDFHome" class="btn-ghost">Exportar PDF</button>
+      </div>
+      <div id="customHtmlHome"></div>
+      <div id="gridHome" class="grid"></div>
+    </div>
+  </section>
+
+  <!-- TAB 2 -->
+  <section id="screen-tab2" class="screen">
+    <div class="card">
+      <h2>Pestaña 2</h2>
+      <button id="btnAddItemTab2" class="btn-ghost hidden">Añadir ítem</button>
+      <div id="customHtmlTab2"></div>
+      <div id="gridTab2" class="grid"></div>
+    </div>
+  </section>
+
+  <!-- TAB 3 -->
+  <section id="screen-tab3" class="screen">
+    <div class="card">
+      <h2>Pestaña 3</h2>
+      <button id="btnAddItemTab3" class="btn-ghost hidden">Añadir ítem</button>
+      <div id="customHtmlTab3"></div>
+      <div id="gridTab3" class="grid"></div>
+    </div>
+  </section>
+
+  <!-- CONFIGURACIÓN -->
+  <section id="screen-config" class="screen">
+    <div class="card">
+      <h2>Configuración</h2>
+      <label>Nombre</label><input id="cfg_name" class="input">
+      <label>Subtítulo</label><input id="cfg_sub" class="input">
+      <label>Logo</label><input id="cfg_logo" type="file" accept="image/*" class="input">
+      <label>Color primario</label><input id="cfg_primary" type="color" class="input">
+      <label>Color acento</label><input id="cfg_accent" type="color" class="input">
+      <button id="btnApplyBrand">Aplicar branding</button>
+      <hr>
+      <label>Facebook</label><input id="cfg_fb" class="input">
+      <label>Instagram</label><input id="cfg_ig" class="input">
+      <label>WhatsApp</label><input id="cfg_wa" class="input">
+      <label>Texto WA</label><input id="cfg_wa_text" class="input">
+      <button id="btnApplyLinks">Aplicar enlaces</button>
+      <hr>
+      <label>Inicio HTML</label><textarea id="cfg_html_home" class="input"></textarea>
+      <label>Pestaña2 HTML</label><textarea id="cfg_html_tab2" class="input"></textarea>
+      <label>Pestaña3 HTML</label><textarea id="cfg_html_tab3" class="input"></textarea>
+      <button id="btnApplyHtml">Aplicar HTML</button>
+    </div>
+  </section>
+
+  <!-- MODAL -->
+  <div id="modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center">
+    <div class="card" style="max-width:600px;width:90%">
+      <h3 id="modalTitle">Ítem</h3>
+      <label>Título</label><input id="it_title" class="input">
+      <label>Precio</label><input id="it_price" class="input" type="number">
+      <label>Descripción</label><textarea id="it_desc" class="input"></textarea>
+      <label>Imagen URL</label><input id="it_imgurl" class="input">
+      <label>o Imagen archivo</label><input id="it_image" type="file" class="input" accept="image/*">
+      <label>Enlace YouTube</label><input id="it_yt" class="input">
+      <label>Link externo</label><input id="it_link" class="input">
+      <label>WhatsApp</label><input id="it_wa" class="input">
+      <button id="btnSaveItem">Guardar</button>
+      <button id="btnDeleteItem" class="btn-danger hidden">Eliminar</button>
+      <button id="btnCloseModal" class="btn-ghost">Cerrar</button>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">© <span id="year"></span> <span id="footName">NeoCatálogo</span></footer>
+
+<script>
+const KEY={CFG:'neo_cfg',ITEMS:'neo_items',SESSION:'neo_session'};
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s),byId=id=>document.getElementById(id);
+const load=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const uuid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
+function fileToDataURL(f){return new Promise(r=>{const rd=new FileReader();rd.onload=()=>r(rd.result);rd.readAsDataURL(f);});}
+function ensureDefaults(){if(!load(KEY.CFG)){save(KEY.CFG,{name:'NeoCatálogo',sub:'',logo:null,primary:'#5df0c1',accent:'#7aa5ff',fb:'',ig:'',waPhone:'',waText:'Hola',htmlHome:'',htmlTab2:'',htmlTab3:''});}
+if(!load(KEY.ITEMS)){save(KEY.ITEMS,{home:[],tab2:[],tab3:[]});}}
+function applyBrand(){const c=load(KEY.CFG,{});byId('brandName').textContent=c.name;byId('brandSub').textContent=c.sub;byId('footName').textContent=c.name;byId('year').textContent=new Date().getFullYear();if(c.logo)byId('brandLogo').src=c.logo;document.documentElement.style.setProperty('--primary',c.primary);document.documentElement.style.setProperty('--accent',c.accent);}
+function show(id){$$('.screen').forEach(s=>s.classList.remove('active'));byId(id).classList.add('active');$$('.tab').forEach(t=>t.classList.remove('active'));$$(`[data-goto="${id}"]`).forEach(t=>t.classList.add('active'));}
+function cardTpl(it){return `<div class="item card">${it.img?`<img src="${it.img}">`:''}<b>${it.title||''}</b><span>${it.price||''}</span><div>${it.desc||''}</div><button onclick="openModal('${it.id}','${it.tab}')">Editar</button></div>`;}
+function renderTab(tab){const data=load(KEY.ITEMS,{home:[],tab2:[],tab3:[]})[tab];const gridId=tab==='home'?'gridHome':(tab==='tab2'?'gridTab2':'gridTab3');byId(gridId).innerHTML=data.map(cardTpl).join('')||'Vacío';}
+function renderAll(){renderTab('home');renderTab('tab2');renderTab('tab3');}
+let CURRENT_TAB='home',EDITING_ID=null;
+function openModal(id=null,tab=CURRENT_TAB){CURRENT_TAB=tab;EDITING_ID=id;const list=load(KEY.ITEMS,{home:[],tab2:[],tab3:[]})[tab];const it=id?list.find(x=>x.id===id):{id:uuid(),tab};byId('modalTitle').textContent=id?'Editar':'Nuevo';byId('it_title').value=it.title||'';byId('it_price').value=it.price||'';byId('it_desc').value=it.desc||'';byId('it_imgurl').value=it.img||'';byId('it_yt').value=it.yt||'';byId('it_link').value=it.link||'';byId('it_wa').value=it.wa||'';byId('btnDeleteItem').classList.toggle('hidden',!id);byId('modal').classList.remove('hidden');}
+function closeModal(){byId('modal').classList.add('hidden');}
+async function saveItem(){const items=load(KEY.ITEMS,{home:[],tab2:[],tab3:[]});const list=items[CURRENT_TAB];let img=byId('it_imgurl').value.trim();const f=byId('it_image').files?.[0];if(f)img=await fileToDataURL(f);const data={id:EDITING_ID||uuid(),tab:CURRENT_TAB,title:byId('it_title').value,price:byId('it_price').value,desc:byId('it_desc').value,img:img,yt:byId('it_yt').value,link:byId('it_link').value,wa:byId('it_wa').value};const ex=list.find(x=>x.id===data.id);if(ex){list.splice(list.indexOf(ex),1,data);}else{list.push(data);}save(KEY.ITEMS,items);renderTab(CURRENT_TAB);closeModal();}
+function deleteItem(){if(!EDITING_ID)return;const items=load(KEY.ITEMS,{home:[],tab2:[],tab3:[]});items[CURRENT_TAB]=items[CURRENT_TAB].filter(x=>x.id!==EDITING_ID);save(KEY.ITEMS,items);renderTab(CURRENT_TAB);closeModal();}
+async function applyBranding(){const c=load(KEY.CFG,{});c.name=byId('cfg_name').value;c.sub=byId('cfg_sub').value;c.primary=byId('cfg_primary').value;c.accent=byId('cfg_accent').value;const f=byId('cfg_logo').files?.[0];if(f)c.logo=await fileToDataURL(f);save(KEY.CFG,c);applyBrand();}
+function applyLinks(){const c=load(KEY.CFG,{});c.fb=byId('cfg_fb').value;c.ig=byId('cfg_ig').value;c.waPhone=byId('cfg_wa').value;c.waText=byId('cfg_wa_text').value;save(KEY.CFG,c);}
+function applyHtml(){const c=load(KEY.CFG,{});c.htmlHome=byId('cfg_html_home').value;c.htmlTab2=byId('cfg_html_tab2').value;c.htmlTab3=byId('cfg_html_tab3').value;save(KEY.CFG,c);renderAll();}
+function bindUI(){$$('[data-goto]').forEach(a=>a.onclick=()=>show(a.dataset.goto));byId('btnAddItemHome').onclick=()=>{CURRENT_TAB='home';openModal();};byId('btnAddItemTab2').onclick=()=>{CURRENT_TAB='tab2';openModal();};byId('btnAddItemTab3').onclick=()=>{CURRENT_TAB='tab3';openModal();};byId('btnCloseModal').onclick=closeModal;byId('btnSaveItem').onclick=saveItem;byId('btnDeleteItem').onclick=deleteItem;byId('btnApplyBrand').onclick=applyBranding;byId('btnApplyLinks').onclick=applyLinks;byId('btnApplyHtml').onclick=applyHtml;}
+function boot(){ensureDefaults();applyBrand();renderAll();bindUI();}
+document.addEventListener('DOMContentLoaded',boot);
+</script>
+</body>
+</html>
