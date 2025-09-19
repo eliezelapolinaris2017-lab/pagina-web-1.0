@@ -145,30 +145,270 @@ label{display:block; font-size:.85rem; color:var(--muted); margin:.2rem 0 .3rem}
 <footer class="footer">© <span id="year"></span> <span id="footName">NeoCatálogo</span></footer>
 
 <script>
+/* ========= Claves de storage ========= */
 const KEY={CFG:'neo_cfg',ITEMS:'neo_items',SESSION:'neo_session'};
+
+/* ========= Helpers ========= */
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s),byId=id=>document.getElementById(id);
 const load=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
 const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const uuid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 function fileToDataURL(f){return new Promise(r=>{const rd=new FileReader();rd.onload=()=>r(rd.result);rd.readAsDataURL(f);});}
-function ensureDefaults(){if(!load(KEY.CFG)){save(KEY.CFG,{name:'NeoCatálogo',sub:'',logo:null,primary:'#5df0c1',accent:'#7aa5ff',fb:'',ig:'',waPhone:'',waText:'Hola',htmlHome:'',htmlTab2:'',htmlTab3:''});}
-if(!load(KEY.ITEMS)){save(KEY.ITEMS,{home:[],tab2:[],tab3:[]});}}
-function applyBrand(){const c=load(KEY.CFG,{});byId('brandName').textContent=c.name;byId('brandSub').textContent=c.sub;byId('footName').textContent=c.name;byId('year').textContent=new Date().getFullYear();if(c.logo)byId('brandLogo').src=c.logo;document.documentElement.style.setProperty('--primary',c.primary);document.documentElement.style.setProperty('--accent',c.accent);}
-function show(id){$$('.screen').forEach(s=>s.classList.remove('active'));byId(id).classList.add('active');$$('.tab').forEach(t=>t.classList.remove('active'));$$(`[data-goto="${id}"]`).forEach(t=>t.classList.add('active'));}
-function cardTpl(it){return `<div class="item card">${it.img?`<img src="${it.img}">`:''}<b>${it.title||''}</b><span>${it.price||''}</span><div>${it.desc||''}</div><button onclick="openModal('${it.id}','${it.tab}')">Editar</button></div>`;}
-function renderTab(tab){const data=load(KEY.ITEMS,{home:[],tab2:[],tab3:[]})[tab];const gridId=tab==='home'?'gridHome':(tab==='tab2'?'gridTab2':'gridTab3');byId(gridId).innerHTML=data.map(cardTpl).join('')||'Vacío';}
-function renderAll(){renderTab('home');renderTab('tab2');renderTab('tab3');}
+const isAdmin=()=>!!load(KEY.SESSION,null);
+
+/* ========= Defaults ========= */
+function ensureDefaults(){
+  if(!load(KEY.CFG)){
+    save(KEY.CFG,{
+      name:'NeoCatálogo',sub:'Galería editable',logo:null,
+      primary:'#5df0c1',accent:'#7aa5ff',
+      fb:'',ig:'',waPhone:'',waText:'Hola, me interesa este artículo.',
+      htmlHome:'',htmlTab2:'',htmlTab3:''
+    });
+  }
+  if(!load(KEY.ITEMS)) save(KEY.ITEMS,{home:[],tab2:[],tab3:[]});
+}
+
+/* ========= Branding ========= */
+function applyBrand(){
+  const c=load(KEY.CFG,{});
+  byId('brandName').textContent=c.name||'';
+  byId('brandSub').textContent=c.sub||'';
+  byId('footName').textContent=c.name||'';
+  byId('year').textContent=new Date().getFullYear();
+  if(c.logo) byId('brandLogo').src=c.logo;
+  document.documentElement.style.setProperty('--primary',c.primary||'#5df0c1');
+  document.documentElement.style.setProperty('--accent', c.accent ||'#7aa5ff');
+}
+
+/* ========= Navegación ========= */
+function show(id){
+  $$('.screen').forEach(s=>s.classList.remove('active'));
+  byId(id).classList.add('active');
+  $$('.tab').forEach(t=>t.classList.remove('active'));
+  $$(`[data-goto="${id}"]`).forEach(t=>t.classList.add('active'));
+}
+
+/* ========= Render tarjetas ========= */
+function iconBtn(href,label){
+  if(!href) return '';
+  return `<a href="${href}" target="_blank" class="btn-ghost" style="display:inline-block;margin-top:.4rem;padding:.45rem .7rem;border-radius:10px;border:1px solid var(--outline)">${label}</a>`;
+}
+function waBtn(num,text){
+  const phone=(num||'').replace(/\D/g,''); if(!phone) return '';
+  const url=`https://wa.me/${phone}?text=${encodeURIComponent(text||'Hola')}`;
+  return iconBtn(url,'WhatsApp');
+}
+function cardTpl(it){
+  const cfg=load(KEY.CFG,{});
+  const tools = [
+    it.yt ? iconBtn(it.yt,'YouTube') : '',
+    it.link ? iconBtn(it.link,'Enlace') : '',
+    (it.wa||cfg.waPhone) ? waBtn((it.wa||cfg.waPhone),(cfg.waText||'Hola')) : ''
+  ].join(' ');
+  return `
+  <div class="item card">
+    ${it.img?`<img src="${it.img}" alt="">`:''}
+    <b>${it.title||''}</b>
+    ${it.price?`<span class="price">${it.price}</span>`:''}
+    <div style="font-size:.95rem;color:#c6d6ef">${it.desc||''}</div>
+    <div>${tools}</div>
+    ${isAdmin()?`<div style="display:flex;gap:.4rem;margin-top:.5rem">
+      <button class="btn-ghost" onclick="openModal('${it.id}','${it.tab}')">Editar</button>
+      <button class="btn-danger" onclick="quickDelete('${it.id}','${it.tab}')">Eliminar</button>
+    </div>`:''}
+  </div>`;
+}
+function renderTab(tab){
+  const data=load(KEY.ITEMS,{home:[],tab2:[],tab3:[]})[tab];
+  const gridId=tab==='home'?'gridHome':(tab==='tab2'?'gridTab2':'gridTab3');
+  const htmlId=tab==='home'?'customHtmlHome':(tab==='tab2'?'customHtmlTab2':'customHtmlTab3');
+  // HTML libre
+  const cfg=load(KEY.CFG,{});
+  byId(htmlId).innerHTML = (tab==='home'?cfg.htmlHome:(tab==='tab2'?cfg.htmlTab2:cfg.htmlTab3)) || '';
+  // Cards
+  byId(gridId).innerHTML = (data.length? data.map(cardTpl).join('') : '<div class="help">Vacío</div>');
+}
+function renderAll(){ renderTab('home'); renderTab('tab2'); renderTab('tab3'); }
+
+/* ========= Modal CRUD ========= */
 let CURRENT_TAB='home',EDITING_ID=null;
-function openModal(id=null,tab=CURRENT_TAB){CURRENT_TAB=tab;EDITING_ID=id;const list=load(KEY.ITEMS,{home:[],tab2:[],tab3:[]})[tab];const it=id?list.find(x=>x.id===id):{id:uuid(),tab};byId('modalTitle').textContent=id?'Editar':'Nuevo';byId('it_title').value=it.title||'';byId('it_price').value=it.price||'';byId('it_desc').value=it.desc||'';byId('it_imgurl').value=it.img||'';byId('it_yt').value=it.yt||'';byId('it_link').value=it.link||'';byId('it_wa').value=it.wa||'';byId('btnDeleteItem').classList.toggle('hidden',!id);byId('modal').classList.remove('hidden');}
-function closeModal(){byId('modal').classList.add('hidden');}
-async function saveItem(){const items=load(KEY.ITEMS,{home:[],tab2:[],tab3:[]});const list=items[CURRENT_TAB];let img=byId('it_imgurl').value.trim();const f=byId('it_image').files?.[0];if(f)img=await fileToDataURL(f);const data={id:EDITING_ID||uuid(),tab:CURRENT_TAB,title:byId('it_title').value,price:byId('it_price').value,desc:byId('it_desc').value,img:img,yt:byId('it_yt').value,link:byId('it_link').value,wa:byId('it_wa').value};const ex=list.find(x=>x.id===data.id);if(ex){list.splice(list.indexOf(ex),1,data);}else{list.push(data);}save(KEY.ITEMS,items);renderTab(CURRENT_TAB);closeModal();}
-function deleteItem(){if(!EDITING_ID)return;const items=load(KEY.ITEMS,{home:[],tab2:[],tab3:[]});items[CURRENT_TAB]=items[CURRENT_TAB].filter(x=>x.id!==EDITING_ID);save(KEY.ITEMS,items);renderTab(CURRENT_TAB);closeModal();}
-async function applyBranding(){const c=load(KEY.CFG,{});c.name=byId('cfg_name').value;c.sub=byId('cfg_sub').value;c.primary=byId('cfg_primary').value;c.accent=byId('cfg_accent').value;const f=byId('cfg_logo').files?.[0];if(f)c.logo=await fileToDataURL(f);save(KEY.CFG,c);applyBrand();}
-function applyLinks(){const c=load(KEY.CFG,{});c.fb=byId('cfg_fb').value;c.ig=byId('cfg_ig').value;c.waPhone=byId('cfg_wa').value;c.waText=byId('cfg_wa_text').value;save(KEY.CFG,c);}
-function applyHtml(){const c=load(KEY.CFG,{});c.htmlHome=byId('cfg_html_home').value;c.htmlTab2=byId('cfg_html_tab2').value;c.htmlTab3=byId('cfg_html_tab3').value;save(KEY.CFG,c);renderAll();}
-function bindUI(){$$('[data-goto]').forEach(a=>a.onclick=()=>show(a.dataset.goto));byId('btnAddItemHome').onclick=()=>{CURRENT_TAB='home';openModal();};byId('btnAddItemTab2').onclick=()=>{CURRENT_TAB='tab2';openModal();};byId('btnAddItemTab3').onclick=()=>{CURRENT_TAB='tab3';openModal();};byId('btnCloseModal').onclick=closeModal;byId('btnSaveItem').onclick=saveItem;byId('btnDeleteItem').onclick=deleteItem;byId('btnApplyBrand').onclick=applyBranding;byId('btnApplyLinks').onclick=applyLinks;byId('btnApplyHtml').onclick=applyHtml;}
-function boot(){ensureDefaults();applyBrand();renderAll();bindUI();}
+function openModal(id=null,tab=CURRENT_TAB){
+  CURRENT_TAB=tab; EDITING_ID=id;
+  const list=load(KEY.ITEMS,{home:[],tab2:[],tab3:[]})[tab];
+  const it=id?list.find(x=>x.id===id):{id:uuid(),tab};
+  byId('modalTitle').textContent=id?'Editar ítem':'Nuevo ítem';
+  byId('it_title').value=it.title||'';
+  byId('it_price').value=it.price||'';
+  byId('it_desc').value=it.desc||'';
+  byId('it_imgurl').value=it.img||'';
+  byId('it_yt').value=it.yt||'';
+  byId('it_link').value=it.link||'';
+  byId('it_wa').value=it.wa||'';
+  byId('btnDeleteItem').classList.toggle('hidden',!id);
+  byId('modal').classList.remove('hidden');
+}
+function closeModal(){ byId('modal').classList.add('hidden'); }
+async function saveItem(){
+  const items=load(KEY.ITEMS,{home:[],tab2:[],tab3:[]});
+  const list=items[CURRENT_TAB];
+  let img=byId('it_imgurl').value.trim();
+  const f=byId('it_image').files?.[0];
+  if(f) img=await fileToDataURL(f);
+  const data={
+    id:EDITING_ID||uuid(),
+    tab:CURRENT_TAB,
+    title:byId('it_title').value.trim(),
+    price:byId('it_price').value.trim(),
+    desc:byId('it_desc').value.trim(),
+    img:img,
+    yt:byId('it_yt').value.trim(),
+    link:byId('it_link').value.trim(),
+    wa:byId('it_wa').value.trim()
+  };
+  const ex=list.find(x=>x.id===data.id);
+  if(ex){ list.splice(list.indexOf(ex),1,data); } else { list.push(data); }
+  save(KEY.ITEMS,items);
+  renderTab(CURRENT_TAB);
+  closeModal();
+}
+function quickDelete(id,tab){
+  const items=load(KEY.ITEMS,{home:[],tab2:[],tab3:[]});
+  items[tab]=items[tab].filter(x=>x.id!==id);
+  save(KEY.ITEMS,items);
+  renderTab(tab);
+}
+function deleteItem(){
+  if(!EDITING_ID) return;
+  quickDelete(EDITING_ID,CURRENT_TAB);
+  closeModal();
+}
+
+/* ========= Config (branding / enlaces / HTML) ========= */
+async function applyBranding(){
+  const c=load(KEY.CFG,{});
+  c.name=byId('cfg_name').value.trim();
+  c.sub =byId('cfg_sub').value.trim();
+  c.primary=byId('cfg_primary').value;
+  c.accent =byId('cfg_accent').value;
+  const f=byId('cfg_logo').files?.[0];
+  if(f) c.logo=await fileToDataURL(f);
+  save(KEY.CFG,c);
+  applyBrand();
+  alert('Branding aplicado');
+}
+function applyLinks(){
+  const c=load(KEY.CFG,{});
+  c.fb=byId('cfg_fb').value.trim();
+  c.ig=byId('cfg_ig').value.trim();
+  c.waPhone=byId('cfg_wa').value.trim();
+  c.waText =byId('cfg_wa_text').value.trim();
+  save(KEY.CFG,c);
+  alert('Enlaces aplicados');
+}
+function applyHtml(){
+  const c=load(KEY.CFG,{});
+  c.htmlHome=byId('cfg_html_home').value;
+  c.htmlTab2=byId('cfg_html_tab2').value;
+  c.htmlTab3=byId('cfg_html_tab3').value;
+  save(KEY.CFG,c);
+  renderAll();
+  alert('HTML aplicado');
+}
+
+/* ========= Exportar PDF (Imprimir) ========= */
+function exportSectionPDF(sectionId,title='Exportación'){
+  const node=byId(sectionId);
+  const html = `
+  <html><head><meta charset="utf-8"><title>${title}</title>
+  <style>
+    body{font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial;padding:20px}
+    .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+    .card{border:1px solid #ddd;border-radius:12px;padding:12px}
+    img{max-width:100%;height:auto;border-radius:10px}
+    .price{display:inline-block;border:1px solid #ddd;border-radius:8px;padding:2px 8px;margin:4px 0}
+  </style>
+  </head><body>${node.innerHTML}</body></html>`;
+  const w=window.open('','_blank'); w.document.write(html); w.document.close(); w.focus(); w.print();
+}
+
+/* ========= Login admin ========= */
+function toggleAdminUI(){
+  const on=isAdmin();
+  ['btnAddItemHome','btnAddItemTab2','btnAddItemTab3'].forEach(id=>{
+    const el=byId(id); if(el) el.classList.toggle('hidden',!on);
+  });
+  byId('btnLogin').classList.toggle('hidden',on);
+  byId('btnLogout').classList.toggle('hidden',!on);
+}
+function doLogin(){
+  const u=prompt('Usuario (admin)')||'';
+  const p=prompt('Contraseña')||'';
+  if(u==='admin' && p==='admin123'){
+    save(KEY.SESSION,{user:'admin',ts:Date.now()});
+    toggleAdminUI();
+    alert('Bienvenido, admin');
+  }else{
+    alert('Credenciales inválidas');
+  }
+}
+function doLogout(){
+  localStorage.removeItem(KEY.SESSION);
+  toggleAdminUI();
+}
+
+/* ========= Bind UI ========= */
+function bindUI(){
+  // Tabs
+  $$('.tab').forEach(a=> a.addEventListener('click',()=> show(a.dataset.goto)));
+
+  // Botones de añadir
+  byId('btnAddItemHome').addEventListener('click',()=>{CURRENT_TAB='home';openModal();});
+  byId('btnAddItemTab2').addEventListener('click',()=>{CURRENT_TAB='tab2';openModal();});
+  byId('btnAddItemTab3').addEventListener('click',()=>{CURRENT_TAB='tab3';openModal();});
+
+  // Modal
+  byId('btnCloseModal').addEventListener('click',closeModal);
+  byId('btnSaveItem').addEventListener('click',saveItem);
+  byId('btnDeleteItem').addEventListener('click',deleteItem);
+
+  // Config aplicar
+  byId('btnApplyBrand').addEventListener('click',applyBranding);
+  byId('btnApplyLinks').addEventListener('click',applyLinks);
+  byId('btnApplyHtml').addEventListener('click',applyHtml);
+
+  // Exportar PDF
+  byId('btnExportPDFHome').addEventListener('click',()=>exportSectionPDF('screen-home','Catálogo'));
+
+  // Login
+  byId('btnLogin').addEventListener('click',doLogin);
+  byId('btnLogout').addEventListener('click',doLogout);
+}
+
+/* ========= Boot ========= */
+function boot(){
+  ensureDefaults();
+  applyBrand();
+  renderAll();
+  bindUI();
+  toggleAdminUI(); // oculta/activa botones según sesión
+  // Cargar campos de config (solo visual — no bloquea nada si están vacíos)
+  const c=load(KEY.CFG,{});
+  byId('cfg_name').value=c.name||'';
+  byId('cfg_sub').value=c.sub||'';
+  byId('cfg_primary').value=c.primary||'#5df0c1';
+  byId('cfg_accent').value=c.accent||'#7aa5ff';
+  byId('cfg_fb').value=c.fb||'';
+  byId('cfg_ig').value=c.ig||'';
+  byId('cfg_wa').value=c.waPhone||'';
+  byId('cfg_wa_text').value=c.waText||'';
+  byId('cfg_html_home').value=c.htmlHome||'';
+  byId('cfg_html_tab2').value=c.htmlTab2||'';
+  byId('cfg_html_tab3').value=c.htmlTab3||'';
+}
 document.addEventListener('DOMContentLoaded',boot);
+
+/* Exponer helpers usados en HTML inline */
+window.openModal=openModal;
+window.quickDelete=quickDelete;
 </script>
-</body>
-</html>
